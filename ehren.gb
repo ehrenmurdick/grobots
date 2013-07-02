@@ -69,24 +69,37 @@ go-home:
   forever
 return
 
+
+find-home:
+  #var x
+  #var y
+  #var x-scale
+  #var y-scale
+
+  world-width 10 / floor x-scale!
+  world-height 10 / floor y-scale!
+
+
+  id 10 / floor x!
+  id 10 mod y!
+
+
+  x 10 mod x!
+  y 10 mod y!
+
+  x x-scale * x!
+  y y-scale * y!
+
+  x x-scale + x!
+
+  x y dest!
+
+  go-home& jump
+return
+
+
 #start
 
-#var x
-#var y
-id 10 / floor x!
-id 10 mod y!
-
-
-x 10 mod x!
-y 10 mod y!
-
-x 10 * x!
-y 10 * y!
-
-x 10 + x!
-
-x y dest!
-
-go-home& jump
+find-home& jump
 
 #end
