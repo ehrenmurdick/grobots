@@ -1,0 +1,59 @@
+#side Grobocops
+#color 00F
+#type Patrobollers
+
+#hardware
+  constructor .4
+  processor 2
+  armor 50
+  food-sensor 5
+  energy 100 100
+  engine .1
+  eater 2
+
+#code
+
+#vector dest
+#var new-x
+#var new-y
+
+new-dest:
+  position dest dist 1 < if
+    10 random-angle polar-to-rect new-x! new-y!
+
+    new-x 0 < if
+      new-x abs new-x!
+    else 
+      new-x world-width > if
+        world-width new-x world-width - - new-x!
+      then
+    then
+
+    new-y 0 < if
+      new-y abs new-y!
+    else
+      new-y world-height > if
+        world-height new-y world-height - - new-y!
+      then
+    then
+
+    new-x new-y dest!
+  then
+return
+
+#start
+position dest!
+do
+  autoconstruct
+
+  10 periodic-food-sensor if
+    0 food-found < if
+      food-position dest!
+    else
+      new-dest& call
+    then
+  then
+
+  dest seek-location
+forever
+#end
