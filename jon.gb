@@ -18,27 +18,7 @@
 #var new-y
 
 new-dest:
-  position dest dist 1 < if
-    10 random-angle polar-to-rect new-x! new-y!
-
-    new-x 0 < if
-      new-x abs new-x!
-    else 
-      new-x world-width > if
-        world-width new-x world-width - - new-x!
-      then
-    then
-
-    new-y 0 < if
-      new-y abs new-y!
-    else
-      new-y world-height > if
-        world-height new-y world-height - - new-y!
-      then
-    then
-
-    new-x new-y dest!
-  then
+  0 world-width random 0 world-height random dest!
 return
 
 #start
