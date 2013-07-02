@@ -4,14 +4,15 @@
 #hardware
   constructor 1
   eater 1
-  food-sensor 3
-  robot-sensor 10
+  food-sensor 8
   processor 10
   engine .1
-  energy 50 50
+  energy 100 100
 #code
 
 #vector dest
+#vector origin
+#vector food-at
 #var delay 100
 
 new-dest:
@@ -21,14 +22,10 @@ return
 
 search-food:
   do
-    10 periodic-food-sensor if
+    40 periodic-food-sensor if
       food-found if
-        food-position dest!
+        food-position food-at!
         seek-food& jump
-      else
-        position dest dist 1 < if
-          new-dest& call
-        then
       then
     then
 
@@ -42,10 +39,10 @@ do
   autoconstruct
   eaten nif
     0 constructor-rate!
-    search-food& jump
+    go-home& jump
   then
 
-  dest seek-location
+  food-at seek-location
 forever
 return
 
@@ -53,17 +50,43 @@ return
 seek-food:
   do
     eaten nif
-      dest seek-location
+      food-at seek-location
+      position food-at dist .5 < if
+        search-food& jump
+      then
     else
       eating& jump
     then
   forever
 return
 
+go-home:
+  do
+    dest seek-location
+    position dest dist 1 < if
+      search-food& jump
+    then
+  forever
+return
+
 #start
 
-new-dest& call
+#var x
+#var y
+id 10 / floor x!
+id 10 mod y!
 
-search-food& jump
+
+x 10 mod x!
+y 10 mod y!
+
+x 10 * x!
+y 10 * y!
+
+x 10 + x!
+
+x y dest!
+
+go-home& jump
 
 #end
