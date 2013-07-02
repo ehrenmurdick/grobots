@@ -2,15 +2,13 @@
 #color F1F
 #type Eater
 #hardware
-  constructor .4
-  eater 2
+  constructor 1
+  eater 1
   food-sensor 3
   robot-sensor 10
-  blaster 20 10 50
   processor 10
   engine .1
   energy 50 50
-  armor 40
 #code
 
 #vector dest
@@ -20,32 +18,52 @@ new-dest:
   0 world-width random 0 world-height random dest!
 return
 
-#start
-new-dest& call
-do
-  autoconstruct
 
-  eaten nif
-    delay periodic-food-sensor if
-      10 delay!
+search-food:
+  do
+    10 periodic-food-sensor if
       food-found if
         food-position dest!
+        seek-food& jump
       else
         position dest dist 1 < if
           new-dest& call
         then
       then
     then
-  then
 
-  50 periodic-robot-sensor if
-    robot-found if
-      robot-position robot-velocity lead-blaster
-      robot-position dest!
-    then
+    dest seek-location
+  forever
+return
+
+
+eating:
+do
+  autoconstruct
+  eaten nif
+    0 constructor-rate!
+    search-food& jump
   then
 
   dest seek-location
-
 forever
+return
+
+
+seek-food:
+  do
+    eaten nif
+      dest seek-location
+    else
+      eating& jump
+    then
+  forever
+return
+
+#start
+
+new-dest& call
+
+search-food& jump
+
 #end
