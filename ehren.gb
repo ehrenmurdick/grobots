@@ -4,15 +4,18 @@
 #hardware
   constructor .4
   eater 2
-  food-sensor 2
+  food-sensor 3
   robot-sensor 10
   blaster 5 10 50
   processor 10
   engine .1
   energy 50 50
+  armor 40
 #code
 
 #vector dest
+#var delay 100
+#var seeking-food 0
 
 new-dest:
   0 world-width random 0 world-height random dest!
@@ -24,12 +27,20 @@ do
   autoconstruct
 
   eaten nif
-    10 periodic-food-sensor if
-      food-found if
-        food-position dest!
-      else
-        position dest dist 1 < if
-          new-dest& call
+    seeking-food if
+      position dest dist .1 < if
+        0 seeking-food!
+      then
+    else
+      delay periodic-food-sensor if
+        10 delay!
+        food-found if
+          1 seeking-food!
+          food-position dest!
+        else
+          position dest dist 1 < if
+            new-dest& call
+          then
         then
       then
     then
