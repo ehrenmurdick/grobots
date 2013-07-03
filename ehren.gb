@@ -4,8 +4,8 @@
 #hardware
   constructor 1
   eater 1
-  food-sensor 8
-  processor 10
+  food-sensor 5.5
+  processor 100
   engine .1
   energy 100 100
 #code
@@ -71,35 +71,72 @@ return
 
 
 find-home:
-  #var x
-  #var y
-  #var x-scale
-  #var y-scale
+  #vector origin
+  #var nsteps 0
+  #var c 0
+  #var i 0
+  #vector step 10 0
+  #var x 0
 
-  world-width 10 / floor x-scale!
-  world-height 10 / floor y-scale!
+  1 vread origin!
 
+  origin dest!
 
-  id 10 / floor x!
-  id 10 mod y!
+  do x id < while
+    i nsteps < if
+      i 1 + i!
+    else
+      step rotate& call step!
+      0 i!
+      c if
+        nsteps 1 + nsteps!
+        0 c!
+      else
+        1 c!
+      then
+    then
+    dest step v+ dest!
 
+    dest in-map& call if
+      x 1 + x!
+    then
+  loop
 
-  x 10 mod x!
-  y 10 mod y!
+return
 
-  x x-scale * x!
-  y y-scale * y!
+; min(int) x(int) max(int) -> bool
+; true if x is between min and max
+in-range:
+  < <
+return
 
-  x x-scale + x!
+; x(vector) -> bool
+; true if the vector is contained within the bounds of the map
+in-map:
+  2dup 5 restrict-position v=
+return
 
-  x y dest!
-
-  go-home& jump
+; vector -> vector
+; rotates input 90º
+rotate:
+  rect-to-polar pi/2 + polar-to-rect
 return
 
 
 #start
 
-find-home& jump
+id 1 = if
+  position 1 vwrite
+then
+
+sync sync sync
+sync sync sync
+sync sync sync
+sync sync sync
+sync sync sync
+sync sync sync
+
+find-home& call
+go-home& jump
 
 #end
