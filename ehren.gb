@@ -19,21 +19,28 @@
 #decoration 0FF dot
 #hardware
   constructor 5
-  solar-cells .8
+  solar-cells .4
   food-sensor 40 20
   robot-sensor 40 20
   processor 20
+  engine .04
   energy 100 10
 #code
+
+random-dest:
+  0 world-width random 0 world-height random
+return
 
 #start
 1 robot-sensor-sees-friends!
 0 robot-sensor-sees-enemies!
+random-dest& call dest!
 do
+  dest seek-location
   autoconstruct
+  .9 2 balance-type
   50 periodic-food-sensor if
-    fire-robot-sensor
-    sync
+    50 periodic-robot-sensor drop
     do next-robot while
       robot-flag Hungry = if
         next-food if
@@ -53,6 +60,7 @@ forever
 #color 000
 #hardware
   eater 2
+  solar-cells .01
   engine .1
   processor 10
   energy 500 50
@@ -105,8 +113,11 @@ do
 forever
 
 Offload:
+engine-velocity vnegate engine-velocity!
 do
-  0 engine-power!
+  speed 1 < if
+    0 engine-power!
+  then
   position dest v- rect-to-polar pi + syphon-direction! syphon-distance!
   syphon-max-rate negate syphon-rate!
 
