@@ -1,39 +1,69 @@
 #side Grobocops
 #color 00F
-#type Patrobollers
+#type Permibot
 
 #hardware
-  constructor .4
   processor 2
   armor 50
   food-sensor 5
   energy 100 100
-  engine .1
-  eater 2
+  engine .2
+  eater 5
 
 #code
 
-#vector dest
-#var new-x
-#var new-y
+#var LEAD_CH 1
+#var DRONE_CH 2
 
-new-dest:
-  0 world-width random 0 world-height random dest!
+#var LEADER_ID_p 1
+
+#var msg-len
+#var pos-reqs
+#var drone-angle
+
+#var drone-addr
+#var needs-command 1
+
+#vector new-pos
+
+calc-drone-addr:
+  2 * 1000 swap - ; drone-addr = 1000 - drone-id * 2 
 return
 
 #start
-position dest!
-do
-  autoconstruct
 
-  10 periodic-food-sensor if
-    0 food-found < if
-      food-position dest!
-    else
-      new-dest& call
+1 LEADER_ID_p write
+
+do
+
+  id LEADER_ID_p read = if
+    DRONE_CH messages pos-reqs!
+    pos-reqs 0 > if
+      2pi pos-reqs / drone-angle!
+
+      do DRONE_CH receive while
+        calc-drone-addr& call drone-addr!
+        10 drone-angle pos-reqs * polar-to-rect position v+ drone-addr vwrite
+        pos-reqs 1 - pos-reqs!
+      loop
+
     then
+
+  else
+
+    needs-command if
+      id 1 DRONE_CH send
+      0 needs-command!
+    then
+
+    id calc-drone-addr& call vread new-pos!
+
+    new-pos 0 0 v<> if
+      new-pos seek-location
+    then
+
   then
 
-  dest seek-location
 forever
+
 #end
