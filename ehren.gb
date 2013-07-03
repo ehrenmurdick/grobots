@@ -1,147 +1,140 @@
 #side Ehren
-#color F1F
-#type Eater
-#hardware
-  constructor 1
-  eater 1
-  food-sensor 8
-  processor 20
-  engine .5
-  energy 100 100
+#color F0F
+
 #code
+#const FoodChannel 1
+#const SyphonChannel 2
+
+; flags
+#const Hungry 1
+#const Full 2
 
 #vector dest
-#vector origin
-#vector food-at
-#var delay 100
-
-new-dest:
-  0 world-width random 0 world-height random dest!
-return
+#seed 1 2 2 2 2 2 2
 
 
-; -> bool
-; whether a food is my claim
-check-mine:
-  food-position dest v- drop abs 5.1 <
-  food-position dest v- swap drop abs 5.1 <
-  and
-return
 
-search-food:
-  do
-    40 periodic-food-sensor if
-      food-found if
-        check-mine& call if
-          food-position food-at!
-          seek-food& jump
-        then
-      then
-    then
-
-    dest seek-location
-  forever
-return
-
-
-eating:
-do
-  autoconstruct
-  eaten nif
-    0 constructor-rate!
-    search-food& jump
-  then
-
-  food-at seek-location
-forever
-return
-
-
-seek-food:
-  do
-    eaten nif
-      food-at seek-location
-      position food-at dist .5 < if
-        search-food& jump
-      then
-    else
-      eating& jump
-    then
-  forever
-return
-
-go-home:
-  do
-    dest seek-location
-    position dest dist 1 < if
-      search-food& jump
-    then
-  forever
-return
-
-
-find-home:
-  #vector origin
-  #var nsteps 0
-  #var c 0
-  #var i 0
-  #vector step 10 0
-  #var x 0
-
-  1 vread origin!
-
-  origin dest!
-
-  do x id < while
-    i nsteps < if
-      i 1 + i!
-    else
-      step rotate& call step!
-      0 i!
-      c if
-        nsteps 1 + nsteps!
-        0 c!
-      else
-        1 c!
-      then
-    then
-    dest step v+ dest!
-
-    dest in-map& call if
-      x 1 + x!
-    then
-  loop
-
-return
-
-; x(vector) -> bool
-; true if the vector is contained within the bounds of the map
-in-map:
-  2dup .1 restrict-position v=
-return
-
-; vector -> vector
-; rotates input 90º
-rotate:
-  rect-to-polar pi/2 + polar-to-rect
-return
-
+#type Base
+#color 000
+#decoration 0FF dot
+#hardware
+  constructor 5
+  solar-cells .8
+  food-sensor 40 20
+  robot-sensor 40 20
+  processor 20
+  energy 100 10
+#code
 
 #start
+1 robot-sensor-sees-friends!
+0 robot-sensor-sees-enemies!
+do
+  autoconstruct
+  50 periodic-food-sensor if
+    fire-robot-sensor
+    sync
+    do next-robot while
+      robot-flag Hungry = if
+        next-food if
+          food-position robot-id 3 FoodChannel send
+        then
+      then
+      robot-flag Full = if
+        position robot-id 3 SyphonChannel send
+      then
+    loop
 
-id 1 = if
-  position 10 / floor 10 *
-  swap 10 / floor 10 *
-  swap
-  1 vwrite
-then
+  then
+forever
 
-find-home& call
 
-id 1 = if
-  1 vread dest!
-then
+#type Gatherer
+#color 000
+#hardware
+  eater 2
+  engine .1
+  processor 10
+  energy 500 50
+  syphon 10 3
+#code
 
-go-home& jump
+
+Need-food:
+Hungry flag!
+do
+  FoodChannel receive if
+    id = if
+      dest!
+      Seek-food& jump
+    else
+      2drop
+    then
+  then
+forever
+
+Seek-food:
+0 flag!
+do
+  dest seek-location
+  position dest dist radius < if
+    Eat-food& jump
+  then
+forever
+
+Eat-food:
+do
+  dest seek-location
+  eaten nif
+    Need-food& jump
+  then
+
+  max-energy energy - 50 < if
+    Ready& jump
+  then
+forever
+
+
+Return:
+0 flag!
+do
+  dest seek-location
+  position dest syphon-range in-range if
+    Offload& jump
+  then
+forever
+
+Offload:
+do
+  0 engine-power!
+  position dest v- rect-to-polar pi + syphon-direction! syphon-distance!
+  syphon-max-rate negate syphon-rate!
+
+  energy 50 < if
+    0 syphon-rate!
+    Need-food& jump
+  then
+
+  syphoned nif
+    Ready& jump
+  then
+forever
+
+Ready:
+Full flag!
+do
+  SyphonChannel receive if
+    id = if
+      dest!
+      Return& jump
+    else
+      2drop
+    then
+  then
+forever
+
+#start
+position dest!
+Need-food& jump
 
 #end
