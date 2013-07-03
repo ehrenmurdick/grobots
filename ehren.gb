@@ -4,9 +4,9 @@
 #hardware
   constructor 1
   eater 1
-  food-sensor 5.5
-  processor 100
-  engine .1
+  food-sensor 8
+  processor 20
+  engine .5
   energy 100 100
 #code
 
@@ -20,12 +20,22 @@ new-dest:
 return
 
 
+; -> bool
+; whether a food is my claim
+check-mine:
+  food-position dest v- drop abs 5.1 <
+  food-position dest v- swap drop abs 5.1 <
+  and
+return
+
 search-food:
   do
     40 periodic-food-sensor if
       food-found if
-        food-position food-at!
-        seek-food& jump
+        check-mine& call if
+          food-position food-at!
+          seek-food& jump
+        then
       then
     then
 
@@ -39,7 +49,7 @@ do
   autoconstruct
   eaten nif
     0 constructor-rate!
-    go-home& jump
+    search-food& jump
   then
 
   food-at seek-location
@@ -104,16 +114,10 @@ find-home:
 
 return
 
-; min(int) x(int) max(int) -> bool
-; true if x is between min and max
-in-range:
-  < <
-return
-
 ; x(vector) -> bool
 ; true if the vector is contained within the bounds of the map
 in-map:
-  2dup 5 restrict-position v=
+  2dup .1 restrict-position v=
 return
 
 ; vector -> vector
@@ -126,17 +130,18 @@ return
 #start
 
 id 1 = if
-  position 1 vwrite
+  position 10 / floor 10 *
+  swap 10 / floor 10 *
+  swap
+  1 vwrite
 then
 
-sync sync sync
-sync sync sync
-sync sync sync
-sync sync sync
-sync sync sync
-sync sync sync
-
 find-home& call
+
+id 1 = if
+  1 vread dest!
+then
+
 go-home& jump
 
 #end
