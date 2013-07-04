@@ -24,19 +24,27 @@ address-to-location:
   10 * 5 +
 return
 
-#type Test
+#type Eater
 #hardware
-  processor 10
+  processor 20
   food-sensor 7
   solar-cells .01
   engine .1
   eater 1
-  energy 50 50
+  energy 60 60
   constructor 1
 #code
 #var Home
 #var LastClaim
 #vector Dest
+
+claim-stale-time:
+  time ClaimStaleTime < if
+    1
+  else
+    time ClaimStaleTime -
+  then
+return
 
 doevents:
   Dest seek-location
@@ -57,12 +65,30 @@ arrived:
   position Dest dist radius <
 return
 
+; address -- bool
+check-address:
+    #var check-address-address
+    read check-address-address!
+
+    check-address-address
+    claim-stale-time^
+    <
+return
+
 find-home:
-  #var x 1
+  #var find-home-x 1
   1 Home!
-  do Home read while
-    x Home!
-    x 1 + x!
+
+  do 
+    Home check-address^
+  until
+    find-home-x Home!
+    find-home-x 1 + find-home-x!
+    find-home-x 100 mod find-home-x!
+
+    find-home-x 0 = if 
+      1 find-home-x!
+    then
   loop
   time Home write
   time LastClaim!
