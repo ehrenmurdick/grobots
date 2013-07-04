@@ -22,18 +22,30 @@ doevents:
   update-claim^
   peel-eyes^ Fight& ifg
   listen^ SeekDanger& ifg
+  repair^
   autoconstruct
 return
 
+repair:
+  manage-energy^ ifr
+  armor max-armor < if
+    max-repair-rate repair-rate!
+  else
+    0 repair-rate!
+  then
+return
+
 listen:
-  #const help-range 40
+  manage-energy^ ifr
+  #const help-range 20
   #const help-time 10
 
   #var listen-time
-  #var listen-retval 0
+  #var listen-retval
   #vector listen-position
   0 listen-retval!
   HelpChannel receive if
+
     listen-time!
     listen-position!
 
@@ -49,7 +61,12 @@ listen:
   listen-retval
 return
 
+manage-energy:
+  energy max-energy 3 / <
+return
+
 peel-eyes:
+  manage-energy^ ifr
   40 periodic-robot-sensor
   robot-found
   and
@@ -133,6 +150,10 @@ do
     food-found if
       food-position location-to-address^ Home = if
         SeekFood& jump
+      else
+        food-position location-to-address^ check-address^ if
+          SeekFood& jump
+        then
       then
     then
   then
@@ -162,7 +183,7 @@ Fight:
 #var Fight-last-call
 do
   Dest seek-location
-  8 periodic-robot-sensor if
+  16 periodic-robot-sensor if
     robot-found if
       robot-position robot-velocity lead-blaster
       robot-position Dest!
@@ -182,6 +203,11 @@ do
   Dest seek-location
   position Dest blaster-range in-range if
     Fight& jump
+  then
+  20 periodic-robot-sensor if
+    robot-found if
+      Fight& jump
+    then
   then
 forever
 return
@@ -206,15 +232,16 @@ return
 
 #type Eater
 #hardware
+  repair-rate .1
   processor 20
-  food-sensor 7
+  food-sensor 10
   solar-cells .02
   engine .1
   eater 1
   energy 60 60
   constructor 1
   armor 60
-  blaster 12 7 8
+  blaster 12 7 16
   robot-sensor 7
 #code
 #start
