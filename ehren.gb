@@ -4,148 +4,110 @@
 #code
 #const FoodChannel 1
 #const SyphonChannel 2
+#const ClaimFrequency 100
+#const ClaimStaleTime 150
 
-; flags
-#const Hungry 1
-#const Full 2
-
-#vector dest
-#seed 1 2 2 2 2 2 2
-
-
-
-#type Base
-#color 000
-#decoration 0FF dot
-#hardware
-  constructor 5
-  solar-cells .4
-  food-sensor 40 20
-  robot-sensor 40 20
-  processor 20
-  engine .04
-  energy 100 10
-#code
-
-random-dest:
-  0 world-width random 0 world-height random
+; x y -> offset
+location-to-address:
+  10 / floor
+  swap
+  10 / floor 10 *
+  +
 return
 
-#start
-1 robot-sensor-sees-friends!
-0 robot-sensor-sees-enemies!
-random-dest& call dest!
-do
-  dest seek-location
-  autoconstruct
-  .9 2 balance-type
-  50 periodic-food-sensor if
-    50 periodic-robot-sensor drop
-    do next-robot while
-      robot-flag Hungry = if
-        next-food if
-          food-position robot-id 3 FoodChannel send
-        then
-      then
-      robot-flag Full = if
-        position robot-id 3 SyphonChannel send
-      then
-    loop
+address-to-location:
+  dup
+  10 / floor
+  10 * 5 +
+  swap
+  10 mod
+  10 * 5 +
+return
 
-  then
-forever
-
-
-#type Gatherer
-#color 000
+#type Test
 #hardware
-  eater 2
+  processor 10
+  food-sensor 7
   solar-cells .01
   engine .1
-  processor 10
-  energy 500 50
-  syphon 10 3
+  eater 1
+  energy 50 50
+  constructor 1
 #code
+#var Home
+#var LastClaim
+#vector Dest
 
+doevents:
+  Dest seek-location
+  update-claim^
+  autoconstruct
+return
 
-Need-food:
-Hungry flag!
+update-claim:
+  LastClaim 
+  time ClaimFrequency - 
+  < if
+    time LastClaim!
+    time Home write
+  then
+return
+
+arrived:
+  position Dest dist radius <
+return
+
+find-home:
+  #var x 1
+  1 Home!
+  do Home read while
+    x Home!
+    x 1 + x!
+  loop
+  time Home write
+  time LastClaim!
+return
+
+WaitForFood:
+Home address-to-location^ Dest!
 do
-  FoodChannel receive if
-    id = if
-      dest!
-      Seek-food& jump
-    else
-      2drop
+  doevents^
+  40 periodic-food-sensor if
+    food-found if
+      food-position location-to-address^ Home = if
+        SeekFood& jump
+      then
     then
   then
 forever
 
-Seek-food:
-0 flag!
+SeekFood:
+food-position Dest!
 do
-  dest seek-location
-  position dest dist radius < if
-    Eat-food& jump
-  then
+  doevents^
+  arrived^ Eat& ifg
 forever
 
-Eat-food:
+Eat:
 do
-  dest seek-location
-  eaten nif
-    Need-food& jump
-  then
-
-  max-energy energy - 50 < if
-    Ready& jump
-  then
+  doevents^
+  eaten WaitForFood& nifg
 forever
 
-
-Return:
-0 flag!
+GoHome:
+Home address-to-location^ Dest!
 do
-  dest seek-location
-  position dest syphon-range in-range if
-    Offload& jump
-  then
+  doevents^
+  arrived^ WaitForFood& ifg
 forever
 
-Offload:
-engine-velocity vnegate engine-velocity!
-do
-  speed 1 < if
-    0 engine-power!
-  then
-  position dest v- rect-to-polar pi + syphon-direction! syphon-distance!
-  syphon-max-rate negate syphon-rate!
-
-  energy 50 < if
-    0 syphon-rate!
-    Need-food& jump
-  then
-
-  syphoned nif
-    Ready& jump
-  then
-forever
-
-Ready:
-Full flag!
-do
-  SyphonChannel receive if
-    id = if
-      dest!
-      Return& jump
-    else
-      2drop
-    then
-  then
-forever
 
 #start
-position dest!
-Need-food& jump
+do time id 10 * < while
+  sync
+loop
+find-home^
+GoHome& jump
+
 
 #end
