@@ -36,7 +36,9 @@ repair:
 return
 
 listen:
-  manage-energy^ ifr
+  manage-energy^ if
+    0 return
+  then
   #const help-range 20
   #const help-time 10
 
@@ -66,7 +68,9 @@ manage-energy:
 return
 
 peel-eyes:
-  manage-energy^ ifr
+  manage-energy^ if
+    0 return
+  then
   40 periodic-robot-sensor
   robot-found
   and
