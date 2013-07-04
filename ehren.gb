@@ -3,6 +3,7 @@
 
 #code
 #const HelpChannel 1
+#const NastiesChannel 2
 #const ClaimFrequency 100
 #const ClaimStaleTime 150
 #var Home
@@ -21,10 +22,10 @@ return
 
 doevents:
   Dest seek-location
+  update-claim^
   manage-energy^ ifr
 
   autoconstruct
-  update-claim^
   peel-eyes^ Fight& ifg
   listen^ SeekDanger& ifg
   incoming^ SeekDanger& ifg
@@ -48,8 +49,9 @@ incoming:
 return
 
 listen:
-  #const help-range 30
+  #const help-range-per-robot 10
   #const help-time 100
+  #var help-range
 
   #var listen-time
   #var listen-retval
@@ -58,6 +60,7 @@ listen:
   HelpChannel receive if
 
     listen-time!
+    help-range-per-robot * help-range!
     listen-position!
 
     listen-time time help-time - > if
@@ -73,6 +76,10 @@ listen:
 return
 
 manage-energy:
+  energy 20 < if
+    0 engine-power!
+  then
+
   energy max-energy 3 / <
 return
 
@@ -88,6 +95,10 @@ update-claim:
   LastClaim 
   time ClaimFrequency - 
   < if
+    Home read
+    LastClaim
+    <> find-home& ifc
+
     time LastClaim!
     time Home write
   then
@@ -223,10 +234,18 @@ do
       record-target^
       energy grenades-firing-cost > if
         robot-position robot-velocity lead-grenade
+        engine-max-power engine-power!
       then
       time Fight-last-call - 20 > if
         time Fight-last-call!
-        robot-position time 3 HelpChannel send
+        robot-position 
+        
+        num-robot-results
+        armor max-armor 2 / < if
+          1 +
+        then
+        
+        time 4 HelpChannel send
       then
     else
       0 Fighting!
@@ -251,6 +270,11 @@ record-target:
   dodge-y +
   swap
   target-position!
+
+  robot-reloading
+  robot-bomb or if
+    robot-type robot-side 2 NastiesChannel send
+  then
 
   robot-velocity target-velocity!
   robot-distance target-distance!
@@ -310,7 +334,7 @@ return
   constructor 1
   armor 150
   grenades 30 14 16
-  robot-sensor 14 2
+  robot-sensor 14 4
 #code
 #start
 do time id 10 * < while
@@ -322,7 +346,7 @@ GoHome& jump
 #type Seeder
 #color F00
 #hardware
-  processor 10
+  processor 20 100
   energy 800 200
   engine 2
   constructor 4
@@ -336,13 +360,34 @@ GoHome& jump
 doevents-Seeder:
   Dest seek-location
   construct^
+  listen-Seeder^
   danger-check^
 return
 
 danger-check:
   40 periodic-robot-sensor if
-    robot-found Flee& ifg
+    robot-found if
+      robot-reloading if
+        1 robot-to-address^ store
+      then
+      robot-bomb if
+        1 robot-to-address^ store
+      then
+      robot-to-address^ load if
+        Flee& jump
+      then
+    then
   then
+return
+
+robot-to-address:
+  robot-side 
+  robot-type
+  side-type-to-address^
+return
+
+side-type-to-address:
+  swap 10 * +
 return
 
 construct:
@@ -353,6 +398,12 @@ construct:
   then
 
   1 constructor-type!
+return
+
+listen-Seeder:
+  NastiesChannel receive if
+    side-type-to-address^ 1 swap 2dup vprint store
+  then
 return
 
 new-dest:
@@ -367,10 +418,11 @@ Flee:
 #vector Flee-to
 time Flee-time!
 robot-position position v- vnegate Flee-to!
-robot-position time 3 HelpChannel send
+position 3 time 4 HelpChannel send
 do
   time Flee-time - 50 < if
     Flee-to engine-velocity!
+    engine-max-power engine-power!
   else
     SearchFood& jump
   then
