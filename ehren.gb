@@ -1,39 +1,10 @@
 #side Ehren
-#color F0F
+#color 000
 
 #code
-#const FoodChannel 1
-#const SyphonChannel 2
+#const HelpChannel 1
 #const ClaimFrequency 100
 #const ClaimStaleTime 150
-
-; x y -> offset
-location-to-address:
-  10 / floor
-  swap
-  10 / floor 10 *
-  +
-return
-
-address-to-location:
-  dup
-  10 / floor
-  10 * 5 +
-  swap
-  10 mod
-  10 * 5 +
-return
-
-#type Eater
-#hardware
-  processor 20
-  food-sensor 7
-  solar-cells .01
-  engine .1
-  eater 1
-  energy 60 60
-  constructor 1
-#code
 #var Home
 #var LastClaim
 #vector Dest
@@ -49,7 +20,14 @@ return
 doevents:
   Dest seek-location
   update-claim^
+  peel-eyes^ Fight& ifg
   autoconstruct
+return
+
+peel-eyes:
+  40 periodic-robot-sensor
+  robot-found
+  and
 return
 
 update-claim:
@@ -155,7 +133,49 @@ do
   arrived^ WaitForFood& ifg
 forever
 
+Fight:
+do
+  Dest seek-location
+  8 periodic-robot-sensor if
+    robot-found if
+      robot-position robot-velocity lead-blaster
+    else
+      GoHome& jump
+    then
+  then
+forever
 
+
+; x y -> offset
+location-to-address:
+  10 / floor
+  swap
+  10 / floor 10 *
+  +
+return
+
+address-to-location:
+  dup
+  10 / floor
+  10 * 5 +
+  swap
+  10 mod
+  10 * 5 +
+return
+
+#type Eater
+#hardware
+  processor 20
+  food-sensor 7
+  solar-cells .02
+  engine .1
+  eater 1
+  energy 60 60
+  constructor 1
+  armor 60
+  blaster 12 7 8
+  robot-sensor 7
+#code
 #start
 do time id 10 * < while
   sync
