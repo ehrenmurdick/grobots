@@ -303,7 +303,7 @@ loop
 find-home^
 GoHome& jump
 
-type Seeder
+#type Seeder
 #color F00
 #hardware
   processor 10
