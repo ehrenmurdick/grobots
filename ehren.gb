@@ -67,29 +67,57 @@ return
 
 ; address -- bool
 check-address:
-    #var check-address-address
-    read check-address-address!
+    #var check-address-time
+    read check-address-time!
 
-    check-address-address
+    check-address-time
     claim-stale-time^
     <
 return
 
+address-in-bounds?:
+  address-to-location^ 
+  2dup 0 restrict-position
+  v=
+return
+
+; compute an archimedes spiral starting from current position
+; check each cell along the spiral for availability
+; claim first available
 find-home:
+  #var find-home-r 1
+  #var find-home-theta 0
   #var find-home-x 1
-  1 Home!
+  #var find-home-address
+  #const find-home-step 1
+  position location-to-address^ Home!
 
   do 
+    Home 0 = if 
+      1 Home!
+    then
     Home check-address^
   until
-    find-home-x Home!
-    find-home-x 1 + find-home-x!
-    find-home-x 100 mod find-home-x!
+    find-home-step find-home-theta *
+    find-home-x +
+    find-home-r!
 
-    find-home-x 0 = if 
-      1 find-home-x!
+    find-home-r 100 mod find-home-r!
+
+    find-home-r find-home-theta polar-to-rect
+    position v+
+    location-to-address^ find-home-address!
+
+    find-home-address address-in-bounds?^ if
+      find-home-address Home!
     then
+    
+    pi 8 /
+    find-home-theta +
+    find-home-theta!
   loop
+
+
   time Home write
   time LastClaim!
 return
