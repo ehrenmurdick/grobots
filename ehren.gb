@@ -21,7 +21,32 @@ doevents:
   Dest seek-location
   update-claim^
   peel-eyes^ Fight& ifg
+  listen^ SeekDanger& ifg
   autoconstruct
+return
+
+listen:
+  #const help-range 40
+  #const help-time 10
+
+  #var listen-time
+  #var listen-retval 0
+  #vector listen-position
+  0 listen-retval!
+  HelpChannel receive if
+    listen-time!
+    listen-position!
+
+    listen-time time help-time - > if
+      listen-position position dist 
+      help-range < if
+        listen-position Dest!
+        1 listen-retval!
+      then
+    then
+  then
+
+  listen-retval
 return
 
 peel-eyes:
@@ -134,16 +159,32 @@ do
 forever
 
 Fight:
+#var Fight-last-call
 do
   Dest seek-location
   8 periodic-robot-sensor if
     robot-found if
       robot-position robot-velocity lead-blaster
+      robot-position Dest!
+      time Fight-last-call - 20 > if
+        time Fight-last-call!
+        robot-position time 3 HelpChannel send
+      then
     else
-      GoHome& jump
+      WaitForFood& jump
     then
   then
 forever
+
+SeekDanger:
+time print
+do
+  Dest seek-location
+  position Dest blaster-range in-range if
+    Fight& jump
+  then
+forever
+return
 
 
 ; x y -> offset
