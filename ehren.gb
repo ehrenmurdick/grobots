@@ -84,43 +84,6 @@ manage-energy:
 return
 
 
-shoot:
-  #var shoot-target-distance
-  #var shoot-blast-direction
-  #vector shoot-blast-velocity
-  robot-distance shoot-target-distance!
-;aim the shot
-  robot-velocity velocity v- 2dup shoot-target-distance blaster-speed / vs* robot-position v+
-  position dist blaster-speed / vs* robot-position v+
-  position v- angle shoot-blast-direction!
-  velocity blaster-speed shoot-blast-direction polar-to-rect v+ shoot-blast-velocity!
-;look for friends
-  0 robot-sensor-sees-enemies!
-  1 robot-sensor-sees-friends!
-  shoot-target-distance 2 / robot-sensor-focus-distance!
-  shoot-blast-direction robot-sensor-focus-direction!
-  fire-robot-sensor sync
-  1 robot-sensor-sees-enemies!
-  0 robot-sensor-sees-friends!
-  0 robot-sensor-focus-distance!
-;anybody in the way?
-  robot-found if
-    do
-      robot-position position v- 2dup  ;vector to this robot
-        shoot-blast-velocity robot-velocity v- unitize dot  ;how far along the shot-path
-        dup radius > swap shoot-target-distance < and  ;is it between us and the target?
-        rrot shoot-blast-velocity robot-velocity v- unitize cross  ;distance from shot-path
-        abs robot-radius .2 + < and ifr  ;...and is it close to the path?
-    next-robot while-loop
-  then
-;shoot
-  shoot-blast-direction fire-blaster
-  0 robot-sensor-sees-friends!
-  1 robot-sensor-sees-enemies!
-  1 robot-sensor-focus-distance!
-return
-
-
 peel-eyes:
   40 periodic-robot-sensor
   robot-found
@@ -245,7 +208,7 @@ do
   Dest seek-location
   16 periodic-robot-sensor if
     robot-found if
-      shoot^
+      robot-position robot-velocity lead-grenade
       robot-position Dest!
       time Fight-last-call - 20 > if
         time Fight-last-call!
@@ -261,7 +224,7 @@ SeekDanger:
 0 constructor-type!
 do
   Dest seek-location
-  position Dest blaster-range in-range if
+  position Dest grenades-range in-range if
     Fight& jump
   then
   20 periodic-robot-sensor if
@@ -310,7 +273,7 @@ return
   energy 200 75
   constructor 1
   armor 150
-  blaster 20 15 40
+  grenades 20 15 40
   robot-sensor 15 2
 #code
 #start
