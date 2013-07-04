@@ -124,6 +124,8 @@ find-home:
   #const find-home-step 1
   position location-to-address^ Home!
 
+  Home read LastClaim = ifr
+
   do 
     Home 0 = if 
       1 Home!
@@ -234,8 +236,22 @@ do
   then
 forever
 
+#var dodge-x 
+#var dodge-y 
+#var dodge-time
 record-target:
-  robot-position target-position!
+  time dodge-time - 12 > if
+    time dodge-time!
+    -5 5 random-int dodge-x!
+    -5 5 random-int dodge-y!
+  then
+  robot-position
+  dodge-x +
+  swap
+  dodge-y +
+  swap
+  target-position!
+
   robot-velocity target-velocity!
   robot-distance target-distance!
 return
@@ -311,24 +327,88 @@ GoHome& jump
   engine 2
   constructor 4
   food-sensor 20
+  robot-sensor 20
+  repair-rate .1
   eater 10
-  armor 500
+  solar-cells .1
+  armor 200
 #code
-do
+doevents-Seeder:
   Dest seek-location
-  energy 200 > if
+  construct^
+  danger-check^
+return
+
+danger-check:
+  40 periodic-robot-sensor if
+    robot-found Flee& ifg
+  then
+return
+
+construct:
+  energy 250 > if
     constructor-max-rate constructor-rate!
   else
     0 constructor-rate!
   then
 
   1 constructor-type!
-  eaten nif
-    40 periodic-food-sensor if
-      food-position Dest!
-    then
+return
+
+new-dest:
+  0 world-height random 
+  0 world-width random 
+  20 restrict-position 
+  Dest!
+return
+
+Flee:
+#var Flee-time
+#vector Flee-to
+time Flee-time!
+robot-position position v- vnegate Flee-to!
+robot-position time 3 HelpChannel send
+do
+  time Flee-time - 50 < if
+    Flee-to engine-velocity!
+  else
+    SearchFood& jump
   then
 forever
+
+SearchFood:
+do
+  doevents-Seeder^
+  eaten nif
+    40 periodic-food-sensor if
+      food-found if
+        SeekFood-Seeder& jump
+      then
+    then
+  then
+  arrived^ new-dest& ifc
+forever
+
+SeekFood-Seeder:
+food-position Dest!
+do
+  doevents-Seeder^
+  arrived^ Eat-Seeder& ifg
+forever
+
+Eat-Seeder:
+do
+  doevents-Seeder^
+  armor max-armor < if
+    max-repair-rate repair-rate!
+  else
+    0 repair-rate!
+  then
+  eaten SearchFood& nifg
+forever
+
+#start
+SearchFood& jump
 
 
 #end
