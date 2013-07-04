@@ -20,14 +20,33 @@ return
 doevents:
   Dest seek-location
   update-claim^
+  autoconstruct
+
+  manage-energy^ ifr
   peel-eyes^ Fight& ifg
   listen^ SeekDanger& ifg
+  incoming^ SeekDanger& ifg
   repair^
-  autoconstruct
+return
+
+incoming:
+  #var incoming-retval
+  0 incoming-retval!
+
+  20 periodic-shot-sensor if
+    shot-found if
+      shot-position
+      shot-velocity vnegate
+      50 vs*
+      v+
+      Dest!
+      1 incoming-retval!
+    then
+  then
+  incoming-retval
 return
 
 repair:
-  manage-energy^ ifr
   armor max-armor < if
     max-repair-rate repair-rate!
   else
@@ -36,9 +55,6 @@ repair:
 return
 
 listen:
-  manage-energy^ if
-    0 return
-  then
   #const help-range 20
   #const help-time 10
 
@@ -106,9 +122,6 @@ return
 
 
 peel-eyes:
-  manage-energy^ if
-    0 return
-  then
   40 periodic-robot-sensor
   robot-found
   and
@@ -171,7 +184,9 @@ find-home:
     location-to-address^ find-home-address!
 
     find-home-address address-in-bounds?^ if
-      find-home-address Home!
+      find-home-address address-to-location^ position dist 45 < if
+        find-home-address Home!
+      then
     then
     
     pi 8 /
@@ -194,7 +209,9 @@ do
         SeekFood& jump
       else
         food-position location-to-address^ check-address^ if
-          SeekFood& jump
+          food-position Home address-to-location^ dist 14 < if
+            SeekFood& jump
+          then
         then
       then
     then
@@ -240,7 +257,6 @@ do
 forever
 
 SeekDanger:
-time print
 do
   Dest seek-location
   position Dest blaster-range in-range if
@@ -279,19 +295,21 @@ address-to-location:
   10 * 5 +
 return
 
-#type Eater
+#type Killbot
+#decoration FF0 circle
 #hardware
   repair-rate .1
-  processor 20
+  processor 50
   food-sensor 10
+  shot-sensor 9
   solar-cells .02
   engine .1
   eater 1.1
   energy 200 75
   constructor 1
-  armor 60
-  blaster 12 7 16
-  robot-sensor 7 2
+  armor 200
+  blaster 20 15 40
+  robot-sensor 15 2
 #code
 #start
 do time id 10 * < while
