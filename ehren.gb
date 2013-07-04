@@ -7,7 +7,9 @@
 #const ClaimStaleTime 150
 #var Home
 #var LastClaim
+#var Fighting
 #vector Dest
+#seed 2 2 2 2 1 1 1 1
 
 claim-stale-time:
   time ClaimStaleTime < if
@@ -18,10 +20,10 @@ claim-stale-time:
 return
 
 doevents:
+  energy 0 = if die then
   Dest seek-location
   update-claim^
   autoconstruct
-  repair^
 
   manage-energy^ ifr
   peel-eyes^ Fight& ifg
@@ -44,14 +46,6 @@ incoming:
     then
   then
   incoming-retval
-return
-
-repair:
-  manage-energy^ armor max-armor < and if
-    max-repair-rate repair-rate!
-  else
-    0 repair-rate!
-  then
 return
 
 listen:
@@ -91,6 +85,7 @@ peel-eyes:
 return
 
 update-claim:
+  Fighting ifr
   LastClaim 
   time ClaimFrequency - 
   < if
@@ -147,7 +142,7 @@ find-home:
     location-to-address^ find-home-address!
 
     find-home-address address-in-bounds?^ if
-      find-home-address address-to-location^ position dist 45 < if
+      find-home-address address-to-location^ position dist 75 < if
         find-home-address Home!
       then
     then
@@ -191,7 +186,15 @@ forever
 Eat:
 do
   doevents^
-  eaten WaitForFood& nifg
+  armor max-armor < if
+    max-repair-rate repair-rate!
+  else
+    0 repair-rate!
+  then
+  eaten nif
+    0 repair-rate!
+    WaitForFood& jump
+  then
 forever
 
 GoHome:
@@ -203,18 +206,26 @@ forever
 
 Fight:
 #var Fight-last-call
+1 Fighting!
 0 constructor-type!
 do
   Dest seek-location
   16 periodic-robot-sensor if
     robot-found if
       robot-position robot-velocity lead-grenade
-      robot-position Dest!
+
+      grenades-range .8 *
+      robot-direction pi + reorient
+      polar-to-rect
+      Dest!
+
       time Fight-last-call - 20 > if
         time Fight-last-call!
         robot-position time 3 HelpChannel send
       then
     else
+      0 Fighting!
+      find-home^
       WaitForFood& jump
     then
   then
@@ -267,8 +278,7 @@ return
   processor 50
   food-sensor 10
   shot-sensor 9
-  solar-cells .02
-  engine .1
+  engine .16
   eater 1.1
   energy 200 75
   constructor 1
@@ -282,6 +292,24 @@ do time id 10 * < while
 loop
 find-home^
 GoHome& jump
+
+#type SolarBuilder
+#hardware
+  processor 2
+  energy 5 0
+  solar-cells .4
+  constructor .4
+  armor 30
+#code
+constructor-max-rate constructor-rate!
+do time id 10 * < while
+  sync
+loop
+do
+  constructor-type nif
+    0 2 random-int 1 max constructor-type!
+  then
+forever
 
 
 #end
