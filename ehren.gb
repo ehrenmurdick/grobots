@@ -219,10 +219,17 @@ return
 
 ; x y -> offset
 location-to-address:
+  #var location-to-address-retval
   10 / floor
   swap
   10 / floor 10 *
   +
+  location-to-address-retval!
+  location-to-address-retval 0 = if
+    1
+  else
+    location-to-address-retval
+  then
 return
 
 address-to-location:
