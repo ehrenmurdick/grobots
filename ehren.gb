@@ -21,12 +21,12 @@ doevents:
   Dest seek-location
   update-claim^
   autoconstruct
+  repair^
 
   manage-energy^ ifr
   peel-eyes^ Fight& ifg
   listen^ SeekDanger& ifg
   incoming^ SeekDanger& ifg
-  repair^
 return
 
 incoming:
@@ -47,7 +47,7 @@ incoming:
 return
 
 repair:
-  armor max-armor < if
+  manage-energy^ armor max-armor < and if
     max-repair-rate repair-rate!
   else
     0 repair-rate!
@@ -55,8 +55,8 @@ repair:
 return
 
 listen:
-  #const help-range 20
-  #const help-time 10
+  #const help-range 30
+  #const help-time 100
 
   #var listen-time
   #var listen-retval
@@ -240,6 +240,7 @@ forever
 
 Fight:
 #var Fight-last-call
+0 constructor-type!
 do
   Dest seek-location
   16 periodic-robot-sensor if
@@ -257,6 +258,7 @@ do
 forever
 
 SeekDanger:
+0 constructor-type!
 do
   Dest seek-location
   position Dest blaster-range in-range if
@@ -307,7 +309,7 @@ return
   eater 1.1
   energy 200 75
   constructor 1
-  armor 200
+  armor 150
   blaster 20 15 40
   robot-sensor 15 2
 #code
