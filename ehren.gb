@@ -67,6 +67,44 @@ manage-energy:
   energy max-energy 3 / <
 return
 
+
+shoot:
+  #var shoot-target-distance
+  #var shoot-blast-direction
+  #vector shoot-blast-velocity
+  robot-distance shoot-target-distance!
+;aim the shot
+  robot-velocity velocity v- 2dup shoot-target-distance blaster-speed / vs* robot-position v+
+  position dist blaster-speed / vs* robot-position v+
+  position v- angle shoot-blast-direction!
+  velocity blaster-speed shoot-blast-direction polar-to-rect v+ shoot-blast-velocity!
+;look for friends
+  0 robot-sensor-sees-enemies!
+  1 robot-sensor-sees-friends!
+  shoot-target-distance 2 / robot-sensor-focus-distance!
+  shoot-blast-direction robot-sensor-focus-direction!
+  fire-robot-sensor sync
+  1 robot-sensor-sees-enemies!
+  0 robot-sensor-sees-friends!
+  0 robot-sensor-focus-distance!
+;anybody in the way?
+  robot-found if
+    do
+      robot-position position v- 2dup  ;vector to this robot
+        shoot-blast-velocity robot-velocity v- unitize dot  ;how far along the shot-path
+        dup radius > swap shoot-target-distance < and  ;is it between us and the target?
+        rrot shoot-blast-velocity robot-velocity v- unitize cross  ;distance from shot-path
+        abs robot-radius .2 + < and ifr  ;...and is it close to the path?
+    next-robot while-loop
+  then
+;shoot
+  shoot-blast-direction fire-blaster
+  0 robot-sensor-sees-friends!
+  1 robot-sensor-sees-enemies!
+  1 robot-sensor-focus-distance!
+return
+
+
 peel-eyes:
   manage-energy^ if
     0 return
@@ -189,7 +227,7 @@ do
   Dest seek-location
   16 periodic-robot-sensor if
     robot-found if
-      robot-position robot-velocity lead-blaster
+      shoot^
       robot-position Dest!
       time Fight-last-call - 20 > if
         time Fight-last-call!
@@ -248,12 +286,12 @@ return
   food-sensor 10
   solar-cells .02
   engine .1
-  eater 1
-  energy 60 60
+  eater 1.1
+  energy 200 75
   constructor 1
   armor 60
   blaster 12 7 16
-  robot-sensor 7
+  robot-sensor 7 2
 #code
 #start
 do time id 10 * < while
