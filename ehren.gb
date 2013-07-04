@@ -205,19 +205,23 @@ forever
 
 Fight:
 #var Fight-last-call
+#var fighting-distance
+#vector target-position
+#vector target-velocity
+#var target-distance
 1 Fighting!
 0 constructor-type!
+.8 grenades-range * fighting-distance!
 do
-  Dest seek-location
-  16 periodic-robot-sensor if
+  position target-position v- unitize fighting-distance vs* target-position v+
+    target-velocity seek-moving-location
+  time robot-sensor-time grenades-reload-time + >= if
+    fire-robot-sensor sync
     robot-found if
-      robot-position robot-velocity lead-grenade
-
-      grenades-range .8 *
-      robot-direction pi + reorient
-      polar-to-rect
-      Dest!
-
+      record-target^
+      energy grenades-firing-cost > if
+        robot-position robot-velocity lead-grenade
+      then
       time Fight-last-call - 20 > if
         time Fight-last-call!
         robot-position time 3 HelpChannel send
@@ -229,6 +233,12 @@ do
     then
   then
 forever
+
+record-target:
+  robot-position target-position!
+  robot-velocity target-velocity!
+  robot-distance target-distance!
+return
 
 SeekDanger:
 0 constructor-type!
@@ -283,8 +293,8 @@ return
   energy 200 75
   constructor 1
   armor 150
-  grenades 30 7 40
-  robot-sensor 7 2
+  grenades 30 14 16
+  robot-sensor 14 2
 #code
 #start
 do time id 10 * < while
