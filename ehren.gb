@@ -9,7 +9,7 @@
 #var LastClaim
 #var Fighting
 #vector Dest
-#seed 2 2 2 2 1 1 1 1
+#seed 3 1 1 1 1
 
 claim-stale-time:
   time ClaimStaleTime < if
@@ -20,12 +20,11 @@ claim-stale-time:
 return
 
 doevents:
-  energy 0 = if die then
   Dest seek-location
-  update-claim^
-  autoconstruct
-
   manage-energy^ ifr
+
+  autoconstruct
+  update-claim^
   peel-eyes^ Fight& ifg
   listen^ SeekDanger& ifg
   incoming^ SeekDanger& ifg
@@ -274,6 +273,7 @@ return
 #type Killbot
 #decoration FF0 circle
 #hardware
+  solar-cells .04
   repair-rate .1
   processor 50
   food-sensor 10
@@ -283,8 +283,8 @@ return
   energy 200 75
   constructor 1
   armor 150
-  grenades 20 15 40
-  robot-sensor 15 2
+  grenades 30 7 40
+  robot-sensor 7 2
 #code
 #start
 do time id 10 * < while
@@ -295,19 +295,43 @@ GoHome& jump
 
 #type SolarBuilder
 #hardware
-  processor 2
+  processor 1
   energy 5 0
-  solar-cells .4
+  solar-cells .45
   constructor .4
-  armor 30
 #code
 constructor-max-rate constructor-rate!
 do time id 10 * < while
   sync
 loop
 do
-  constructor-type nif
-    0 2 random-int 1 max constructor-type!
+  1 constructor-type!
+forever
+
+#type Seeder
+#color F00
+#hardware
+  processor 10
+  energy 800 200
+  engine 2
+  constructor 4
+  food-sensor 20
+  eater 10
+  armor 500
+#code
+do
+  Dest seek-location
+  energy 200 > if
+    constructor-max-rate constructor-rate!
+  else
+    0 constructor-rate!
+  then
+
+  2 constructor-type!
+  eaten nif
+    40 periodic-food-sensor if
+      food-position Dest!
+    then
   then
 forever
 
