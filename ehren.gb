@@ -9,7 +9,7 @@
 #var LastClaim
 #var Fighting
 #vector Dest
-#seed 3 1 1 1 1
+#seed 2 1 1 1 1
 
 claim-stale-time:
   time ClaimStaleTime < if
@@ -303,22 +303,7 @@ loop
 find-home^
 GoHome& jump
 
-#type SolarBuilder
-#hardware
-  processor 1
-  energy 5 0
-  solar-cells .45
-  constructor .4
-#code
-constructor-max-rate constructor-rate!
-do time id 10 * < while
-  sync
-loop
-do
-  1 constructor-type!
-forever
-
-#type Seeder
+type Seeder
 #color F00
 #hardware
   processor 10
@@ -337,7 +322,7 @@ do
     0 constructor-rate!
   then
 
-  2 constructor-type!
+  1 constructor-type!
   eaten nif
     40 periodic-food-sensor if
       food-position Dest!
