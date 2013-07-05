@@ -337,6 +337,7 @@ return
   robot-sensor 14 4
 #code
 #start
+start:
 do time id 10 * < while
   sync
 loop
@@ -460,6 +461,7 @@ do
 forever
 
 #start
+start:
 SearchFood& jump
 
 
