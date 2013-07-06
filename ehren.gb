@@ -1,468 +1,77 @@
 #side Ehren
-#color 000
-
+#color DAA
 #code
-#const HelpChannel 1
-#const NastiesChannel 2
-#const ClaimFrequency 100
-#const ClaimStaleTime 150
+#const HomeOffset 100
+
 #var Home
-#var LastClaim
-#var Fighting
+
 #vector Dest
-#seed 2 1 1 1 1
-
-claim-stale-time:
-  time ClaimStaleTime < if
-    1
-  else
-    time ClaimStaleTime -
-  then
-return
-
-doevents:
-  Dest seek-location
-  update-claim^
-  manage-energy^ ifr
-
-  autoconstruct
-  peel-eyes^ Fight& ifg
-  listen^ SeekDanger& ifg
-  incoming^ SeekDanger& ifg
-return
-
-incoming:
-  #var incoming-retval
-  0 incoming-retval!
-
-  20 periodic-shot-sensor if
-    shot-found if
-      shot-position
-      shot-velocity vnegate
-      50 vs*
-      v+
-      Dest!
-      1 incoming-retval!
-    then
-  then
-  incoming-retval
-return
-
-listen:
-  #const help-range-per-robot 10
-  #const help-time 100
-  #var help-range
-
-  #var listen-time
-  #var listen-retval
-  #vector listen-position
-  0 listen-retval!
-  HelpChannel receive if
-
-    listen-time!
-    help-range-per-robot * help-range!
-    listen-position!
-
-    listen-time time help-time - > if
-      listen-position position dist 
-      help-range < if
-        listen-position Dest!
-        1 listen-retval!
-      then
-    then
-  then
-
-  listen-retval
-return
-
-manage-energy:
-  energy 20 < if
-    0 engine-power!
-  then
-
-  energy max-energy 3 / <
-return
+#vector x-step 10 0
+#vector y-step 0 10
 
 
-peel-eyes:
-  40 periodic-robot-sensor
-  robot-found
-  and
-return
-
-update-claim:
-  Fighting ifr
-  LastClaim 
-  time ClaimFrequency - 
-  < if
-    Home read
-    LastClaim
-    <> find-home& ifc
-
-    time LastClaim!
-    time Home write
-  then
-return
-
-arrived:
-  position Dest dist radius <
-return
-
-; address -- bool
-check-address:
-    #var check-address-time
-    read check-address-time!
-
-    check-address-time
-    claim-stale-time^
-    <
-return
-
-address-in-bounds?:
-  address-to-location^ 
-  2dup 0 restrict-position
-  v=
-return
-
-; compute an archimedes spiral starting from current position
-; check each cell along the spiral for availability
-; claim first available
-find-home:
-  #var find-home-r 1
-  #var find-home-theta 0
-  #var find-home-x 1
-  #var find-home-address
-  #const find-home-step 1
-  position location-to-address^ Home!
-
-  Home read LastClaim = ifr
-
-  do 
-    Home 0 = if 
-      1 Home!
-    then
-    Home check-address^
-  until
-    find-home-step find-home-theta *
-    find-home-x +
-    find-home-r!
-
-    find-home-r 100 mod find-home-r!
-
-    find-home-r find-home-theta polar-to-rect
-    position v+
-    location-to-address^ find-home-address!
-
-    find-home-address address-in-bounds?^ if
-      find-home-address address-to-location^ position dist 75 < if
-        find-home-address Home!
-      then
-    then
-    
-    pi 8 /
-    find-home-theta +
-    find-home-theta!
-  loop
-
-
-  time Home write
-  time LastClaim!
-return
-
-WaitForFood:
-Home address-to-location^ Dest!
-do
-  doevents^
-  40 periodic-food-sensor if
-    food-found if
-      food-position location-to-address^ Home = if
-        SeekFood& jump
-      else
-        food-position location-to-address^ check-address^ if
-          food-position Home address-to-location^ dist 14 < if
-            SeekFood& jump
-          then
-        then
-      then
-    then
-  then
-forever
-
-SeekFood:
-food-position Dest!
-do
-  doevents^
-  arrived^ Eat& ifg
-forever
-
-Eat:
-do
-  doevents^
-  armor max-armor < if
-    max-repair-rate repair-rate!
-  else
-    0 repair-rate!
-  then
-  eaten nif
-    0 repair-rate!
-    WaitForFood& jump
-  then
-forever
-
-GoHome:
-Home address-to-location^ Dest!
-do
-  doevents^
-  arrived^ WaitForFood& ifg
-forever
-
-Fight:
-#var Fight-last-call
-#var fighting-distance
-#vector target-position
-#vector target-velocity
-#var target-distance
-1 Fighting!
-0 constructor-type!
-.8 grenades-range * fighting-distance!
-do
-  position target-position v- unitize fighting-distance vs* target-position v+
-    target-velocity seek-moving-location
-  time robot-sensor-time grenades-reload-time + >= if
-    fire-robot-sensor sync
-    robot-found if
-      record-target^
-      energy grenades-firing-cost > if
-        robot-position robot-velocity lead-grenade
-        engine-max-power engine-power!
-      then
-      time Fight-last-call - 20 > if
-        time Fight-last-call!
-        robot-position 
-        
-        num-robot-results
-        armor max-armor 2 / < if
-          1 +
-        then
-        
-        time 4 HelpChannel send
-      then
-    else
-      0 Fighting!
-      find-home^
-      WaitForFood& jump
-    then
-  then
-forever
-
-#var dodge-x 
-#var dodge-y 
-#var dodge-time
-record-target:
-  time dodge-time - 12 > if
-    time dodge-time!
-    -5 5 random-int dodge-x!
-    -5 5 random-int dodge-y!
-  then
-  robot-position
-  dodge-x +
-  swap
-  dodge-y +
-  swap
-  target-position!
-
-  robot-reloading
-  robot-bomb or if
-    robot-type robot-side 2 NastiesChannel send
-  then
-
-  robot-velocity target-velocity!
-  robot-distance target-distance!
-return
-
-SeekDanger:
-0 constructor-type!
-do
-  Dest seek-location
-  position Dest grenades-range in-range if
-    Fight& jump
-  then
-  20 periodic-robot-sensor if
-    robot-found if
-      Fight& jump
-    then
-  then
-forever
-return
-
-
-; x y -> offset
 location-to-address:
-  #var location-to-address-retval
-  10 / floor
-  swap
   10 / floor 10 *
+  swap
+  10 / floor
   +
-  location-to-address-retval!
-  location-to-address-retval 0 = if
-    1
-  else
-    location-to-address-retval
-  then
+  HomeOffset +
 return
 
 address-to-location:
+  HomeOffset - 
   dup
   10 / floor
-  10 * 5 +
   swap
   10 mod
-  10 * 5 +
+  swap
+  10 vs*
+  5 5 v+
 return
 
-#type Killbot
-#decoration FF0 circle
+
+#type builder
 #hardware
-  solar-cells .04
-  repair-rate .1
-  processor 50
-  food-sensor 10
-  shot-sensor 9
-  engine .16
-  eater 1.1
-  energy 200 75
-  constructor 1
-  armor 150
-  grenades 30 14 16
-  robot-sensor 14 4
+  processor 10
+  engine .1
+  solar-cells .01
+  constructor .1
+  food-sensor 7
+  energy 20 20
+  eater 1
+
 #code
+
+find-home:
+return
+
+
 #start
-start:
-do time id 10 * < while
+do id 10 * time < while
   sync
 loop
+
 find-home^
-GoHome& jump
+do
+  Home seek-location
+forever
 
-#type Seeder
-#color F00
+
+
+#type defender
+#decoration F00 square
 #hardware
-  processor 20 100
-  energy 800 200
-  engine 2
-  constructor 4
-  food-sensor 20
-  robot-sensor 20
-  repair-rate .1
-  eater 10
+  processor 10
+  engine .1
   solar-cells .1
-  armor 200
+  grenades 8 20 20
+  robot-sensor 20
+  energy 20 20
+
 #code
-doevents-Seeder:
-  Dest seek-location
-  construct^
-  listen-Seeder^
-  danger-check^
-return
 
-danger-check:
-  40 periodic-robot-sensor if
-    robot-found if
-      robot-reloading if
-        1 robot-to-address^ store
-      then
-      robot-bomb if
-        1 robot-to-address^ store
-      then
-      robot-to-address^ load if
-        Flee& jump
-      then
-    then
-  then
-return
 
-robot-to-address:
-  robot-side 
-  robot-type
-  side-type-to-address^
-return
-
-side-type-to-address:
-  swap 10 * +
-return
-
-construct:
-  energy 250 > if
-    constructor-max-rate constructor-rate!
-  else
-    0 constructor-rate!
-  then
-
-  1 constructor-type!
-return
-
-listen-Seeder:
-  NastiesChannel receive if
-    side-type-to-address^ 1 swap 2dup vprint store
-  then
-return
-
-new-dest:
-  0 world-height random 
-  0 world-width random 
-  20 restrict-position 
-  Dest!
-return
-
-Flee:
-#var Flee-time
-#vector Flee-to
-time Flee-time!
-robot-position position v- vnegate Flee-to!
-position 3 time 4 HelpChannel send
-do
-  time Flee-time - 50 < if
-    Flee-to engine-velocity!
-    engine-max-power engine-power!
-  else
-    SearchFood& jump
-  then
+do 
 forever
-
-SearchFood:
-do
-  doevents-Seeder^
-  eaten nif
-    40 periodic-food-sensor if
-      food-found if
-        SeekFood-Seeder& jump
-      then
-    then
-  then
-  arrived^ new-dest& ifc
-forever
-
-SeekFood-Seeder:
-food-position Dest!
-do
-  doevents-Seeder^
-  arrived^ Eat-Seeder& ifg
-forever
-
-Eat-Seeder:
-do
-  doevents-Seeder^
-  armor max-armor < if
-    max-repair-rate repair-rate!
-  else
-    0 repair-rate!
-  then
-  eaten SearchFood& nifg
-forever
-
-#start
-start:
-SearchFood& jump
-
 
 #end
