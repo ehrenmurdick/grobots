@@ -1,7 +1,7 @@
 #side state-machine
 #color DAA
 #code
-#const HomeOffset 1
+#const HomeOffset 100
 
 #var Home
 #var state
@@ -37,7 +37,7 @@ return
   engine .1
   processor 20
   energy 50 100
-  constructor .2
+  constructor 1
 
 #code
 
@@ -45,6 +45,10 @@ find-home:
   HomeOffset Home!
 
   do Home HomeOffset 100 + < while
+    Home 10 mod 3 > if
+      Home 10 + Home!
+      Home 10 / floor 10 * Home!
+    then
     Home check-address^ if
       Home claim^
       return
@@ -59,6 +63,7 @@ claim:
 return
 
 chirp:
+  energy 0 > nifr
   last-chirp time 50 - < if
     chirp-now^
   then
@@ -90,19 +95,61 @@ return
 GoingHome:
   Dest seek-location
   position Dest radius in-range if
-    SearchFood& state!
+    search-food^
   then
 return
 
+seek-food:
+  food-position Dest!
+  SeekingFood& state!
+return
+
+SeekingFood:
+  Dest seek-location
+  position Dest radius in-range if
+    eat^
+  then
+return
+
+eat:
+  Eating& state!
+return
+
+Eating:
+  Dest seek-location
+  eaten nif
+    go-home^
+  then
+return
+
+search-food:
+  SearchFood& state!
+return
+
+cell-empty:
+  chirp-now^
+  find-home^
+  go-home^
+return
+
 SearchFood:
+  Dest seek-location
   40 periodic-food-sensor if
     food-found if
+      food-position location-to-address^ Home = if
+        seek-food^
+      else
+        cell-empty^
+      then
+    else
+      cell-empty^
     then
   then
 return
 
 doevents:
   chirp^
+  autoconstruct
 return
 
 #start
