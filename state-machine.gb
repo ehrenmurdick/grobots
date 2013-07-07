@@ -1,0 +1,110 @@
+#side state-machine
+#color DAA
+#code
+#const HomeOffset 1
+
+#var Home
+#var state
+
+#var last-chirp
+
+#vector Dest
+
+
+location-to-address:
+  10 / floor 10 *
+  swap
+  10 / floor
+  +
+  HomeOffset +
+return
+
+address-to-location:
+  HomeOffset - 
+  dup
+  10 / floor
+  swap
+  10 mod
+  swap
+  10 vs*
+  5 5 v+
+return
+
+#type builder
+#hardware
+  eater 1
+  food-sensor 7
+  engine .1
+  processor 20
+  energy 50 100
+  constructor .2
+
+#code
+
+find-home:
+  HomeOffset Home!
+
+  do Home HomeOffset 100 + < while
+    Home check-address^ if
+      Home claim^
+      return
+    then
+    Home 1 + Home!
+  loop
+return
+
+claim:
+  Home!
+  chirp-now^
+return
+
+chirp:
+  last-chirp time 50 - < if
+    chirp-now^
+  then
+return
+
+chirp-now:
+  time last-chirp!
+  time Home write
+return
+
+check-address:
+  read dup if
+    time 100 - > if
+      0
+    else
+      1
+    then
+  else 
+    drop
+    1
+  then
+return
+
+go-home:
+  Moving& state!
+  Home address-to-location^ Dest!
+return
+
+Moving:
+  Dest seek-location
+return
+
+doevents:
+  chirp^
+return
+
+#start
+do id 10 * time > while
+  sync
+loop
+find-home^
+go-home^
+do
+  doevents^
+  state call
+forever
+
+
+#end
