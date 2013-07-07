@@ -10,6 +10,12 @@
 
 #vector Dest
 
+address-in-bounds?:
+  address-to-location^ 
+  2dup 0 restrict-position
+  v=
+return
+
 
 location-to-address:
   10 / floor 10 *
@@ -32,29 +38,56 @@ return
 
 #type builder
 #hardware
+  armor 50
+  solar-cells .04
   eater 1
   food-sensor 7
-  engine .1
-  processor 20
+  engine .08
+  processor 30
   energy 50 100
   constructor 1
 
 #code
 
+#var find-home-r 1
+#var find-home-theta 0
+#var find-home-x 1
+#var find-home-address
+#const find-home-step 1
 find-home:
-  HomeOffset Home!
+  1 find-home-r!
+  0 find-home-theta!
+  1 find-home-x!
+  position location-to-address^ Home!
 
-  do Home HomeOffset 100 + < while
-    Home 10 mod 3 > if
-      Home 10 + Home!
-      Home 10 / floor 10 * Home!
+  do 
+    Home 0 = if 
+      1 Home!
     then
-    Home check-address^ if
-      Home claim^
-      return
+    Home check-address^
+  until
+    Dest seek-location
+    find-home-step find-home-theta *
+    find-home-x +
+    find-home-r!
+
+    find-home-r 100 mod find-home-r!
+
+    find-home-r find-home-theta polar-to-rect
+    position v+
+    location-to-address^ find-home-address!
+
+    find-home-address address-in-bounds?^ if
+      find-home-address address-to-location^ position dist 75 < if
+        find-home-address Home!
+      then
     then
-    Home 1 + Home!
+    
+    pi find-home-r /
+    find-home-theta +
+    find-home-theta!
   loop
+  chirp-now^
 return
 
 claim:
