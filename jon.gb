@@ -8,62 +8,89 @@
   food-sensor 5
   energy 100 100
   engine .2
-  eater 5
+  eater 2
+  constructor .4
+  robot-sensor 30 40
 
 #code
 
-#var LEAD_CH 1
+#var LEADER_CH 1
 #var DRONE_CH 2
 
 #var LEADER_ID_p 1
+#var FOCUS_p 2
 
 #var msg-len
-#var pos-reqs
 #var drone-angle
-
-#var drone-addr
-#var needs-command 1
+#var drone-count
 
 #vector new-pos
 
+; args: drone-id
 calc-drone-addr:
   2 * 1000 swap - ; drone-addr = 1000 - drone-id * 2 
 return
 
-#start
+; args: angle
+calc-drone-position:
+  10 swap polar-to-rect FOCUS_p vread v+
+return
 
-1 LEADER_ID_p write
-
-do
-
-  id LEADER_ID_p read = if
-    DRONE_CH messages pos-reqs!
-    pos-reqs 0 > if
-      2pi pos-reqs / drone-angle!
-
-      do DRONE_CH receive while
-        calc-drone-addr& call drone-addr!
-        10 drone-angle pos-reqs * polar-to-rect position v+ drone-addr vwrite
-        pos-reqs 1 - pos-reqs!
-      loop
-
+Initialize:
+  0 LEADER_ID_p read = if
+    id LEADER_ID_p write
+    id LEADER_ID_p read = if
+      position FOCUS_p vwrite
+      Leader_init& jump
+    else
+      Drone_init& jump
     then
-
   else
-
-    needs-command if
-      id 1 DRONE_CH send
-      0 needs-command!
-    then
-
-    id calc-drone-addr& call vread new-pos!
-
-    new-pos 0 0 v<> if
-      new-pos seek-location
-    then
-
+    Drone_init& jump
   then
 
-forever
+Leader_init:
+  1 robot-sensor-sees-friends!
+  0 robot-sensor-sees-enemies!
+
+  0 1 LEADER_CH send
+  do
+    fire-robot-sensor
+  DRONE_CH messages num-robot-results < while-loop
+
+  DRONE_CH messages drone-count!
+  2pi drone-count 1 + / drone-angle!
+
+  do DRONE_CH receive while
+    drone-angle drone-count * calc-drone-position& call rot calc-drone-addr& call vwrite
+    drone-count 1 - drone-count!
+  loop
+
+  2pi calc-drone-position& call id calc-drone-addr& call vwrite
+  0 LEADER_ID_p write
+  Drone_idle& jump
+  
+Drone_init:
+  id 1 DRONE_CH send
+  -1 -1 id calc-drone-addr& call vwrite
+  Drone_idle& jump
+
+Drone_idle:
+  id calc-drone-addr& call vread new-pos!
+  -1 -1 new-pos v<> if
+    position new-pos v<> if
+      new-pos seek-location
+    else
+      Drone_feed& jump
+    then
+  then
+  Drone_idle& jump
+
+Drone_feed:
+  Drone_idle& jump
+
+#start
+
+Initialize& jump
 
 #end
