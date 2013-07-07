@@ -1,0 +1,118 @@
+#side Enclave
+#author Ehren
+#color 000
+
+#code
+#const FoodChannel 1 ; food-position time
+#const BuilderChannel 2 ; builder-location time
+#vector Dest
+
+
+#type gatherer
+#hardware
+  eater 1
+  engine .1
+  energy 200 50
+  processor 10
+  syphon 10 10
+#code
+
+#vector builder-position
+
+WaitForFood:
+do
+  FoodChannel receive if
+    time 150 - > if
+      Dest!
+      SeekFood& jump
+    else
+      2drop
+    then
+  then
+forever
+
+EatFood:
+do
+  Dest seek-location
+
+  energy max-energy 0.75 * > if
+    WaitToFeed& jump
+  then
+  eaten nif
+    WaitForFood& jump
+  then
+forever
+
+SeekBuilder:
+do
+  energy max-energy 0.2 * < if
+    0 syphon-rate!
+    WaitForFood& jump
+  then
+
+  position builder-position syphon-range in-range nif
+    builder-position seek-location
+  else
+    0 engine-power!
+    builder-position position v- rect-to-polar syphon-direction! syphon-distance!
+    -1 syphon-rate!
+    syphoned nif
+      WaitToFeed& jump
+    then
+  then
+forever
+
+WaitToFeed:
+do
+  energy max-energy 0.2 * < if
+    WaitForFood& jump
+  then
+  BuilderChannel receive if
+    time 200 - > if
+      builder-position!
+      SeekBuilder& jump
+    else
+      2drop
+    then
+  then
+forever
+
+SeekFood:
+do position dest radius in-range until
+  Dest seek-location
+loop
+EatFood& jump
+
+
+#start
+start:
+WaitForFood& jump
+
+
+#type builder
+#hardware
+  constructor 3
+  food-sensor 30 5
+  processor 1
+  energy 100 50
+#code
+#var last-chirp
+
+do
+  autoconstruct
+  150 periodic-food-sensor if
+    do next-food while
+      food-position time 3 FoodChannel send
+    loop
+  then
+
+  energy max-energy 2 / < if
+    last-chirp time 50 - < if
+      time last-chirp!
+      position time 3 BuilderChannel send
+    then
+  then
+forever
+
+
+#end
