@@ -1,7 +1,12 @@
 #side state-machine
 #color DAA
+
+#seed 1 1 1 2
+
 #code
 #const HomeOffset 100
+#const BuilderType 1
+#const MissileType 2
 
 #var Home
 #var state
@@ -36,19 +41,6 @@ address-to-location:
   5 5 v+
 return
 
-#type builder
-#hardware
-  armor 50
-  solar-cells .04
-  eater 1
-  food-sensor 7
-  engine .08
-  processor 30
-  energy 50 100
-  constructor 1
-
-#code
-
 #var find-home-r 1
 #var find-home-theta 0
 #var find-home-x 1
@@ -57,6 +49,7 @@ return
 find-home:
   1 find-home-r!
   0 find-home-theta!
+  0 4 random pi * find-home-theta + find-home-theta!
   1 find-home-x!
   position location-to-address^ Home!
 
@@ -180,10 +173,28 @@ SearchFood:
   then
 return
 
-doevents:
-  chirp^
+
+#type builder
+#hardware
+  armor 50
+  solar-cells .04
+  eater 1
+  food-sensor 7
+  engine .08
+  processor 30
+  energy 50 100
+  constructor 1
+
+#code
+
+construct:
+  constructor-type nif
+    0.25 MissileType balance-type
+    0.75 BuilderType balance-type
+  then
   autoconstruct
 return
+
 
 #start
 do id 10 * time > while
@@ -192,8 +203,57 @@ loop
 find-home^
 go-home^
 do
-  doevents^
+  chirp^
+  construct^
   state call
+forever
+
+#type missile
+#decoration F00 circle
+#hardware
+  solar-cells .02
+  armor 5
+  processor 5
+  energy 20 15
+  bomb 100
+  robot-sensor 5
+  engine 0.1
+
+#code
+
+
+wait-for-target:
+  WaitingForTarget& state!
+return
+
+hunt:
+  Hunting& state!
+return
+
+Hunting:
+  fire-robot-sensor sync
+  robot-found if
+    robot-position robot-velocity seek-moving-location
+    engine-max-power engine-power!
+    robot-position position 1 in-range if
+      die
+    then
+  then
+return
+
+WaitingForTarget:
+  50 periodic-robot-sensor if
+    robot-found if
+      hunt^
+    then
+  then
+return
+
+#start
+wait-for-target^
+do
+  state call
+  enemy-collision if die then
 forever
 
 
