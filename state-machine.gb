@@ -83,12 +83,22 @@ check-address:
 return
 
 go-home:
-  Moving& state!
+  GoingHome& state!
   Home address-to-location^ Dest!
 return
 
-Moving:
+GoingHome:
   Dest seek-location
+  position Dest radius in-range if
+    SearchFood& state!
+  then
+return
+
+SearchFood:
+  40 periodic-food-sensor if
+    food-found if
+    then
+  then
 return
 
 doevents:
