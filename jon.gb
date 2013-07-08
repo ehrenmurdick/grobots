@@ -1,9 +1,11 @@
 #side Grobocops
 #color 00F
+#seed 1 1 1 1 1
+
 #type Permibot
 
 #hardware
-  processor 2
+  processor 17
   armor 50
   food-sensor 5
   energy 100 100
@@ -14,83 +16,118 @@
 
 #code
 
-#var LEADER_CH 1
-#var DRONE_CH 2
+#const LEADER_CH 1
+#const DRONE_CH 2
 
-#var LEADER_ID_p 1
-#var FOCUS_p 2
+#const LEADER_ID_p 1
+#const FOCUS_p 2
+
+#const MAX_RADIUS 20
 
 #var msg-len
 #var drone-angle
 #var drone-count
 
+#var my-addr
+#var my-angle
+
 #vector new-pos
 
 ; args: drone-id
 calc-drone-addr:
-  2 * 1000 swap - ; drone-addr = 1000 - drone-id * 2 
+  1001 swap -
 return
 
 ; args: angle
 calc-drone-position:
-  10 swap polar-to-rect FOCUS_p vread v+
+  10 swap polar-to-rect FOCUS_p vread v+ 1 restrict-position
 return
 
-Initialize:
+need-command:
+  -1 my-addr write
+  id 1 DRONE_CH send
+return
+
+ClaimLeader:
   0 LEADER_ID_p read = if
     id LEADER_ID_p write
-    id LEADER_ID_p read = if
-      position FOCUS_p vwrite
-      Leader_init& jump
-    else
-      Drone_init& jump
-    then
+  then
+  sync
+
+  id LEADER_ID_p read = if
+    position FOCUS_p vwrite
+    sync
+    Leader_idle& jump
   else
-    Drone_init& jump
+    Drone_idle& jump
   then
 
-Leader_init:
+Initialize:
+  id calc-drone-addr& call my-addr!
+  need-command& call
+
+  ClaimLeader& jump
+
+Leader_idle:
   1 robot-sensor-sees-friends!
   0 robot-sensor-sees-enemies!
 
-  0 1 LEADER_CH send
   do
-    fire-robot-sensor
+    10 periodic-robot-sensor
+    drop
   DRONE_CH messages num-robot-results < while-loop
 
   DRONE_CH messages drone-count!
-  2pi drone-count 1 + / drone-angle!
+  2pi drone-count / drone-angle!
 
   do DRONE_CH receive while
-    drone-angle drone-count * calc-drone-position& call rot calc-drone-addr& call vwrite
+    drone-angle drone-count * swap calc-drone-addr& call write
     drone-count 1 - drone-count!
   loop
 
-  2pi calc-drone-position& call id calc-drone-addr& call vwrite
-  0 LEADER_ID_p write
-  Drone_idle& jump
-  
-Drone_init:
-  id 1 DRONE_CH send
-  -1 -1 id calc-drone-addr& call vwrite
   Drone_idle& jump
 
 Drone_idle:
-  id calc-drone-addr& call vread new-pos!
-  -1 -1 new-pos v<> if
-    position new-pos v<> if
-      new-pos seek-location
+  my-addr read my-angle!
+  -1 my-angle <> if
+    sync
+    my-angle calc-drone-position& call new-pos!
+    position new-pos dist .1 > if
+      Drone_seek& jump
     else
-      Drone_feed& jump
+      ClaimLeader& jump
     then
   then
   Drone_idle& jump
 
+Drone_seek:
+  position new-pos dist .1 > if
+    new-pos seek-location
+  else
+    Drone_feed& jump
+  then
+  Drone_seek& jump
+
 Drone_feed:
-  Drone_idle& jump
+  .67 1 balance-type
+  .33 2 balance-type
+  autoconstruct
+  eaten if
+    Drone_feed& jump
+  else
+    fire-food-sensor
 
-#start
+    food-found if
+      food-position new-pos!
+      Drone_seek& jump
+    then
+    Drone_idle& jump
+  then
 
-Initialize& jump
+#start Initialize
+
+#type Robobot
+
+#hardware
 
 #end
