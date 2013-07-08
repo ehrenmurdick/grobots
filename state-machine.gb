@@ -8,6 +8,8 @@
 #const BuilderType 1
 #const MissileType 2
 
+#const TargetChannel 1
+
 #var Home
 #var state
 
@@ -158,6 +160,13 @@ cell-empty:
   go-home^
 return
 
+repair:
+  armor max-armor < if energy max-energy 2 / > and-if
+    1 repair-rate! return
+  then
+  0 repair-rate! return
+return
+
 SearchFood:
   Dest seek-location
   40 periodic-food-sensor if
@@ -178,14 +187,19 @@ return
 #hardware
   armor 50
   solar-cells .04
+  repair-rate 0.05
   eater 1
   food-sensor 7
+  robot-sensor 20
   engine .08
   processor 30
   energy 50 100
   constructor 1
+  blaster 8 7 10
 
 #code
+
+#var wait-time 50
 
 construct:
   constructor-type nif
@@ -193,6 +207,21 @@ construct:
     0.75 BuilderType balance-type
   then
   autoconstruct
+return
+
+call-targets:
+  energy max-energy 2 / < if
+    50 wait-time!
+  then
+  wait-time periodic-robot-sensor if
+    robot-found if
+      robot-position time 3 TargetChannel send
+      robot-position robot-velocity lead-blaster
+      10 wait-time!
+    else
+      50 wait-time!
+    then
+  then
 return
 
 
@@ -204,15 +233,18 @@ find-home^
 go-home^
 do
   chirp^
+  repair^
   construct^
+  call-targets^
   state call
 forever
 
 #type missile
 #decoration F00 circle
+#color F00
 #hardware
   solar-cells .02
-  armor 5
+  armor 20
   processor 5
   energy 20 15
   bomb 100
@@ -226,11 +258,22 @@ wait-for-target:
   WaitingForTarget& state!
 return
 
-hunt:
-  Hunting& state!
+passive-seek:
+  PassiveSeeking& state!
 return
 
-Hunting:
+PassiveSeeking:
+  Dest seek-location
+  position Dest 15 in-range if
+    active-seek^
+  then
+return
+
+target-lock:
+  TargetLock& state!
+return
+
+TargetLock:
   fire-robot-sensor sync
   robot-found if
     robot-position robot-velocity seek-moving-location
@@ -238,15 +281,41 @@ Hunting:
     robot-position position 1 in-range if
       die
     then
+  else
+    wait-for-target^
+  then
+return
+
+active-seek:
+  ActiveSeeking& state!
+  Dest seek-location
+  engine-max-power engine-power!
+return
+
+ActiveSeeking:
+  fire-robot-sensor sync
+  energy max-energy 4 / < if
+    wait-for-target^
+  then
+  robot-found if
+    target-lock^
   then
 return
 
 WaitingForTarget:
-  50 periodic-robot-sensor if
-    robot-found if
-      hunt^
+  0 engine-power!
+  energy max-energy 0.75 * < ifr
+  TargetChannel receive if
+    time 50 - > if
+      2dup position 30 in-range if
+        Dest!
+        passive-seek^
+      else
+        2drop
+      then
     then
   then
+  stack dropn
 return
 
 #start
